@@ -1,0 +1,51 @@
+--- # Provisioning Centos8
+- hosts: '{{ host }}'
+  gather_facts: yes
+  become: yes
+  tasks:
+    - name: Disable SELinux
+      selinux:
+        state: disabled
+    - name: Ensure SELinux is set to enforcing mode
+      lineinfile:
+        path: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: SELINUX=permissive
+    
+    - name: install epel-release
+      shell: yum install epel-release -y
+
+    - name: Extend bash history
+      lineinfile: dest=/etc/profile  regexp="^HISTSIZE=" line="HISTSIZE=1000000" state=present
+    - name: Setup alternate SSH port
+      lineinfile:
+        dest: "/etc/ssh/sshd_config"
+        regexp: "^#Port"
+        line: "Port 22225"
+
+    - name: installing tools (iotop, atop, net-tools, psmisc, vim, wget, rsync)
+      yum:
+        name:
+          - git
+          - mytop
+          - iotop
+          - net-tools
+          - psmisc # fuser, pstree, killall, peekfd
+          - sysstat
+          - vim
+          - wget
+          - rsync
+          - bash-completion
+          - unzip
+
+    - name: install repmi repo
+      shell: dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+    - name: upgrade all packages
+      yum:
+        name: '*'
+        state: latest
+
+    - name: Restart sshd
+      service:
+        name: sshd
+        state: restarted
